@@ -1,3 +1,6 @@
-
 decrypted_password.csv
 __pycache__/decrypt_chrome_password.cpython-38.pyc
+Server/dataJSON/*
+!Server/dataJSON/.gitkeep
+build
+dist

