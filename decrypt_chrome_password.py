@@ -9,10 +9,11 @@ import win32crypt
 from Cryptodome.Cipher import AES
 import shutil
 import csv
+import json
 
 #GLOBAL CONSTANT
-CHROME_PATH_LOCAL_STATE = os.path.normpath(r"%s\AppData\Local\Google\Chrome\User Data\Local State"%(os.environ['USERPROFILE']))
-CHROME_PATH = os.path.normpath(r"%s\AppData\Local\Google\Chrome\User Data"%(os.environ['USERPROFILE']))
+CHROME_PATH_LOCAL_STATE = os.path.normpath(r"%s\AppData\Local\Microsoft\Edge\User Data\Local State"%(os.environ['USERPROFILE']))
+CHROME_PATH = os.path.normpath(r"%s\AppData\Local\Microsoft\Edge\User Data"%(os.environ['USERPROFILE']))
 
 def get_secret_key():
     try:
@@ -66,9 +67,10 @@ def get_db_connection(chrome_path_login_db):
 if __name__ == '__main__':
     try:
         #Create Dataframe to store passwords
-        with open('decrypted_password.csv', mode='w', newline='', encoding='utf-8') as decrypt_password_file:
-            csv_writer = csv.writer(decrypt_password_file, delimiter=',')
-            csv_writer.writerow(["index","url","username","password"])
+        with open('decrypted_password.json', mode='w', newline='', encoding='utf-8') as decrypt_password_file:
+            #csv_writer = csv.writer(decrypt_password_file, delimiter=',')
+            #csv_writer.writerow(["index","url","username","password"])
+            json_file = {"root": []}
             #(1) Get secret key
             secret_key = get_secret_key()
             #Search user profile or default folder (this is where the encrypted login password is stored)
@@ -92,12 +94,19 @@ if __name__ == '__main__':
                             print("URL: %s\nUser Name: %s\nPassword: %s\n"%(url,username,decrypted_password))
                             print("*"*50)
                             #(5) Save into CSV 
-                            csv_writer.writerow([index,url,username,decrypted_password])
+                            #csv_writer.writerow([index,url,username,decrypted_password])
+                            temp = {"index": index, "url": url, "username": username,"decrypt_password": decrypted_password}
+                            json_file["root"].append(temp)
                     #Close database connection
                     cursor.close()
                     conn.close()
                     #Delete temp login db
                     os.remove("Loginvault.db")
+                    print(json_file)
+                    with open("test.json", "w") as json_file_real:
+                        js = json.dumps(json_file)
+                        json_file_real.write(js)
+
     except Exception as e:
         print("[ERR] "%str(e))
         
